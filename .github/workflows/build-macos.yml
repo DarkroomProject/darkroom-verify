@@ -1,0 +1,67 @@
+name: Build macOS binaries
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Show Rust toolchain
+        run: rustc --version --verbose
+
+      - name: Test
+        run: cargo test --locked --target ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Check binary dependencies
+        env:
+          BINARY: target/${{ matrix.target }}/release/darkroom-verify
+        run: |
+          file "$BINARY"
+          otool -L "$BINARY"
+          dependencies="$(otool -L "$BINARY" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)' || true)"
+          if [[ -n "$dependencies" ]]; then
+            echo "unexpected non-system dynamic dependencies:" >&2
+            echo "$dependencies" >&2
+            exit 1
+          fi
+
+      - name: Package binary
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          archive="darkroom-verify-$TARGET.tar.gz"
+          tar -czf "$archive" -C "target/$TARGET/release" darkroom-verify
+          shasum -a 256 "$archive" > "$archive.sha256"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: darkroom-verify-${{ matrix.target }}
+          path: |
+            darkroom-verify-${{ matrix.target }}.tar.gz
+            darkroom-verify-${{ matrix.target }}.tar.gz.sha256
+          if-no-files-found: error

@@ -1,0 +1,45 @@
+name: Build Windows binary
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build x86_64-pc-windows-msvc
+    runs-on: windows-2025
+    env:
+      TARGET: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Show Rust toolchain
+        run: rustc --version --verbose
+
+      - name: Test
+        run: cargo test --locked --target $env:TARGET
+
+      - name: Build release binary
+        run: cargo build --release --locked --target $env:TARGET
+
+      - name: Package binary
+        run: |
+          $archive = "darkroom-verify-$env:TARGET.zip"
+          Compress-Archive -Path "target/$env:TARGET/release/darkroom-verify.exe" -DestinationPath $archive
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          "$hash  $archive" | Set-Content -Encoding utf8 "$archive.sha256"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: darkroom-verify-${{ env.TARGET }}
+          path: |
+            darkroom-verify-${{ env.TARGET }}.zip
+            darkroom-verify-${{ env.TARGET }}.zip.sha256
+          if-no-files-found: error
