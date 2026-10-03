@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -26,7 +26,10 @@ pub(super) struct OriginalsInventory {
 impl OriginalsInventory {
     /// Reads `originals/` once. An absent directory is empty, not an error;
     /// each declared source then reports `Missing` on its own.
-    pub(super) fn read(package_path: &Path) -> Result<Self, VerifyError> {
+    pub(super) fn read(
+        package_path: &Path,
+        declared_blob_ids: &HashSet<&str>,
+    ) -> Result<Self, VerifyError> {
         let directory = package_path.join(ORIGINALS_DIRECTORY);
         let mut entries: HashMap<String, PathBuf> = HashMap::new();
 
@@ -57,6 +60,9 @@ impl OriginalsInventory {
             }
 
             let blob_id = parse_original_blob_id(&path)?;
+            if !declared_blob_ids.contains(blob_id.as_str()) {
+                return Err(VerifyError::OriginalsEntryInvalid);
+            }
             if entries.insert(blob_id, path).is_some() {
                 return Err(VerifyError::OriginalsEntryDuplicate);
             }

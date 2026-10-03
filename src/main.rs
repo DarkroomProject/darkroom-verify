@@ -35,14 +35,8 @@ fn main() -> ExitCode {
             CheckOutcome::Verified => println!("{subject}  verified"),
             CheckOutcome::Missing => println!("{subject}  missing"),
             CheckOutcome::Unreadable => println!("{subject}  unreadable"),
-            CheckOutcome::Mismatch {
-                algorithm,
-                expected,
-                actual,
-            } => {
+            CheckOutcome::Mismatch { algorithm } => {
                 println!("{subject}  {algorithm:?} mismatch");
-                println!("  expected {expected}");
-                println!("  actual   {actual}");
             }
         }
     }
