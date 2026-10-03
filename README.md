@@ -22,7 +22,8 @@ Pass the directory that contains `manifest.json`:
 ```
 
 The verifier prints the SHA-256 and BLAKE3 hashes of the exact manifest bytes, followed
-by one result for each record content, Seal, and original-file check.
+by one result for each record content, Seal, and original-file check. Mismatches report
+the subject and failed hash algorithm without printing claimed digest values.
 
 Exit status:
 
@@ -89,3 +90,7 @@ cargo test --locked
 cargo fmt -- --check
 cargo clippy --all-targets --locked -- -D warnings
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -22,16 +22,12 @@ pub(super) fn compare(
     if expected_sha256 != actual_sha256 {
         return CheckOutcome::Mismatch {
             algorithm: HashAlgorithm::Sha256,
-            expected: expected_sha256.to_string(),
-            actual: actual_sha256.to_string(),
         };
     }
 
     if expected_blake3 != actual_blake3 {
         return CheckOutcome::Mismatch {
             algorithm: HashAlgorithm::Blake3,
-            expected: expected_blake3.to_string(),
-            actual: actual_blake3.to_string(),
         };
     }
 

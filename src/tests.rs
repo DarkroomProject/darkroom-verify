@@ -679,3 +679,31 @@ fn unrecognized_originals_entry_is_rejected() {
         Err(VerifyError::OriginalsEntryInvalid)
     ));
 }
+
+/// Rejects validly named originals that have no source declaration.
+#[test]
+fn undeclared_original_is_rejected() {
+    for without_sources in [false, true] {
+        let (package, _) = write_package(b"original bytes");
+        if without_sources {
+            let manifest_path = package.path().join("manifest.json");
+            let mut manifest: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(&manifest_path).unwrap()).unwrap();
+            manifest["records"][0]["source"] = serde_json::Value::Null;
+            fs::write(&manifest_path, manifest.to_string()).unwrap();
+        }
+        fs::write(
+            package
+                .path()
+                .join("originals")
+                .join("f47ac10b-58cc-4372-a567-0e02b2c3d479-extra.txt"),
+            b"undeclared bytes",
+        )
+        .unwrap();
+
+        assert!(matches!(
+            verify_package(package.path()),
+            Err(VerifyError::OriginalsEntryInvalid)
+        ));
+    }
+}

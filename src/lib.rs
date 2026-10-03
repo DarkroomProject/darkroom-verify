@@ -97,11 +97,7 @@ pub enum CheckSubject {
 #[derive(Debug, Clone)]
 pub enum CheckOutcome {
     Verified,
-    Mismatch {
-        algorithm: HashAlgorithm,
-        expected: String,
-        actual: String,
-    },
+    Mismatch { algorithm: HashAlgorithm },
     Missing,
     Unreadable,
 }
@@ -134,7 +130,6 @@ pub fn verify_package(package_path: &Path) -> Result<VerifyReport, VerifyError> 
     let manifest_hashes = HashPairReport { sha256, blake3 };
 
     let mut checks = Vec::new();
-    let mut verified_blobs = HashSet::new();
 
     for record in &manifest.records {
         checks.push(Check {
@@ -154,9 +149,15 @@ pub fn verify_package(package_path: &Path) -> Result<VerifyReport, VerifyError> 
         }
     }
 
-    let originals = OriginalsInventory::read(package_path)?;
+    let mut source_blob_ids: HashSet<_> = manifest
+        .records
+        .iter()
+        .filter_map(|record| record.source.as_ref())
+        .map(|source| source.blob_id.as_str())
+        .collect();
+    let originals = OriginalsInventory::read(package_path, &source_blob_ids)?;
     for source in manifest.records.iter().filter_map(|r| r.source.as_ref()) {
-        if !verified_blobs.insert(&source.blob_id) {
+        if !source_blob_ids.remove(source.blob_id.as_str()) {
             continue;
         }
 
